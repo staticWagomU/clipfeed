@@ -52,3 +52,40 @@ Deno.test("renderJsonFeed: omits authors when author is absent", () => {
   const parsed = JSON.parse(renderJsonFeed(noAuthor, site));
   assertEquals(parsed.items[0].authors, undefined);
 });
+
+Deno.test("renderJsonFeed: language becomes undefined in the document when site.language is not set", () => {
+  const noLang: SiteMeta = { ...site, language: undefined };
+  const parsed = JSON.parse(renderJsonFeed(items, noLang));
+  // JSON.stringify drops `undefined` values, so the key should disappear entirely.
+  assertEquals("language" in parsed, false);
+});
+
+Deno.test("renderJsonFeed: handles an empty item list", () => {
+  const parsed = JSON.parse(renderJsonFeed([], site));
+  assertEquals(parsed.items, []);
+});
+
+Deno.test("renderJsonFeed: renders multiple items in input order", () => {
+  const multi: FeedItem[] = [
+    items[0],
+    {
+      title: "Second",
+      link: "https://example.com/b",
+      description: "second body",
+      pubDate: new Date("2026-04-03T10:00:00Z"),
+      guid: "20260403100000-b",
+    },
+  ];
+  const parsed = JSON.parse(renderJsonFeed(multi, site));
+  assertEquals(parsed.items.map((i: { id: string }) => i.id), [
+    "20260404224008-a",
+    "20260403100000-b",
+  ]);
+});
+
+Deno.test("renderJsonFeed: output is valid JSON and ends with a trailing newline", () => {
+  const out = renderJsonFeed(items, site);
+  assertEquals(out.endsWith("\n"), true);
+  // Must round-trip through JSON.parse without error.
+  JSON.parse(out);
+});

@@ -64,3 +64,41 @@ Deno.test("renderRss: omits author element when author is missing", () => {
   const xml = renderRss(noAuthor, site);
   assertEquals(xml.includes("<author>"), false);
 });
+
+Deno.test("renderRss: omits <language> element when site.language is not set", () => {
+  const noLang: SiteMeta = { ...site, language: undefined };
+  const xml = renderRss(items, noLang);
+  assertEquals(xml.includes("<language>"), false);
+});
+
+Deno.test("renderRss: uses the injected clock for lastBuildDate so output is deterministic", () => {
+  const fixedNow = new Date("2026-05-01T00:00:00Z");
+  const xml = renderRss(items, site, fixedNow);
+  assertStringIncludes(xml, "<lastBuildDate>Fri, 01 May 2026 00:00:00 GMT</lastBuildDate>");
+});
+
+Deno.test("renderRss: renders multiple items in input order", () => {
+  const multi: FeedItem[] = [
+    items[0],
+    {
+      title: "Second",
+      link: "https://example.com/b",
+      description: "second post",
+      pubDate: new Date("2026-04-03T10:00:00Z"),
+      guid: "20260403100000-b",
+    },
+  ];
+  const xml = renderRss(multi, site);
+  const firstIdx = xml.indexOf("20260404224008-a");
+  const secondIdx = xml.indexOf("20260403100000-b");
+  assertEquals(firstIdx >= 0 && secondIdx >= 0, true);
+  // Input order is preserved: buildFeed is responsible for sorting upstream,
+  // so renderRss must not reorder.
+  assertEquals(firstIdx < secondIdx, true);
+});
+
+Deno.test("renderRss: handles an empty item list without throwing", () => {
+  const xml = renderRss([], site, new Date("2026-05-01T00:00:00Z"));
+  assertStringIncludes(xml, "<channel>");
+  assertEquals(xml.includes("<item>"), false);
+});

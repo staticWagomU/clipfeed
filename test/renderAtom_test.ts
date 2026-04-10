@@ -48,3 +48,33 @@ Deno.test("renderAtom: author element wraps name in <name>", () => {
   const xml = renderAtom(items, site);
   assertStringIncludes(xml, "<author><name>Alice</name></author>");
 });
+
+Deno.test("renderAtom: omits xml:lang attribute when site.language is not set", () => {
+  const noLang: SiteMeta = { ...site, language: undefined };
+  const xml = renderAtom(items, noLang);
+  assertEquals(xml.includes("xml:lang"), false);
+});
+
+Deno.test("renderAtom: omits <author> entry when item has no author", () => {
+  const noAuthor: FeedItem[] = [{ ...items[0], author: undefined }];
+  const xml = renderAtom(noAuthor, site);
+  assertEquals(xml.includes("<author>"), false);
+});
+
+Deno.test("renderAtom: feed-level <updated> falls back to the injected clock when there are no entries", () => {
+  const fixedNow = new Date("2026-05-01T12:00:00Z");
+  const xml = renderAtom([], site, fixedNow);
+  assertStringIncludes(xml, "<updated>2026-05-01T12:00:00.000Z</updated>");
+  assertEquals(xml.includes("<entry>"), false);
+});
+
+Deno.test("renderAtom: feed-level <updated> uses the first item's pubDate when entries exist", () => {
+  // The "first item" is expected to be the newest thanks to buildFeed's sort,
+  // so Atom <updated> tracks it directly. Inject the clock to prove this
+  // branch does NOT fall through to now.
+  const fixedNow = new Date("2030-01-01T00:00:00Z");
+  const xml = renderAtom(items, site, fixedNow);
+  // Should NOT contain the fixed-now; should contain the item's pubDate.
+  assertStringIncludes(xml, "<updated>2026-04-04T22:40:08.000Z</updated>");
+  assertEquals(xml.includes("2030-01-01"), false);
+});
