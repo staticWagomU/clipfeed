@@ -34,3 +34,32 @@ Deno.test("parseFilename: throws on invalid date components", () => {
     "invalid date",
   );
 });
+
+Deno.test("parseFilename: rejects Feb 30 instead of silently wrapping to March", () => {
+  // Date.UTC(2026, 1, 30) silently normalizes to 2026-03-02, which would
+  // publish an item on the wrong day. The roundtrip check in parseFilename
+  // exists specifically to catch this; lock the behavior in.
+  assertThrows(
+    () => parseFilename("20260230000000-leapish.md"),
+    Error,
+    "invalid date",
+  );
+});
+
+Deno.test("parseFilename: rejects out-of-range hour", () => {
+  assertThrows(
+    () => parseFilename("20260101250000-bad.md"),
+    Error,
+    "invalid date",
+  );
+});
+
+Deno.test("parseFilename: accepts maximum legal components 23:59:59", () => {
+  const result = parseFilename("20260101235959-max.md");
+  assertEquals(result.timestamp.toISOString(), "2026-01-01T23:59:59.000Z");
+});
+
+Deno.test("parseFilename: stem is the filename without extension", () => {
+  const result = parseFilename("20260404224008-slug.md");
+  assertEquals(result.stem, "20260404224008-slug");
+});
