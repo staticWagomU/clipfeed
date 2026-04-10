@@ -14,6 +14,13 @@ export function renderRss(items: readonly FeedItem[], site: SiteMeta): string {
   const now = new Date();
 
   const itemXml = items.map((item) => renderItem(item)).join("\n");
+  // Optional element: emit a fully-formed line (with trailing newline) when
+  // present, empty string otherwise. Building it outside the template keeps
+  // the main literal's indentation readable instead of splicing a ternary
+  // inline between `<description>` and `<lastBuildDate>`.
+  const languageLine = site.language
+    ? `    <language>${xmlEscape(site.language)}</language>\n`
+    : "";
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
@@ -21,11 +28,7 @@ export function renderRss(items: readonly FeedItem[], site: SiteMeta): string {
     <title>${xmlEscape(site.title)}</title>
     <link>${xmlEscape(site.link)}</link>
     <description>${xmlEscape(site.description)}</description>
-${
-    site.language
-      ? `    <language>${xmlEscape(site.language)}</language>\n`
-      : ""
-  }    <lastBuildDate>${now.toUTCString()}</lastBuildDate>
+${languageLine}    <lastBuildDate>${now.toUTCString()}</lastBuildDate>
     <atom:link href="${xmlEscape(selfHref)}" rel="self" type="application/rss+xml"/>
 ${itemXml}
   </channel>
