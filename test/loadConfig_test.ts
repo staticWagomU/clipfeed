@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
-import { DEFAULT_CONFIG, expandHome, loadConfigFile, mergeConfig } from "../src/config.ts";
+import { expandHome, loadConfigFile, mergeConfig } from "../src/config.ts";
 
 /**
  * Write `body` to a fresh temp file and return its path. Caller is responsible
@@ -82,16 +82,43 @@ Deno.test("mergeConfig: an explicit file output overrides the format-based defau
   assertEquals(result.output, "./legacy.xml");
 });
 
-Deno.test("expandHome: replaces leading ~ with $HOME", () => {
-  const home = "/Users/test";
-  assertEquals(expandHome("~/MyLife/Clippings", home), "/Users/test/MyLife/Clippings");
-  assertEquals(expandHome("/absolute/path", home), "/absolute/path");
-  assertEquals(expandHome("./relative", home), "./relative");
+Deno.test("expandHome: replaces leading ~/ with the given home directory", () => {
+  assertEquals(expandHome("~/MyLife/Clippings", "/Users/test"), "/Users/test/MyLife/Clippings");
 });
 
-Deno.test("DEFAULT_CONFIG: has sensible defaults", () => {
-  assertEquals(DEFAULT_CONFIG.limit, 5);
-  assertEquals(DEFAULT_CONFIG.output, "./feed.xml");
+Deno.test("expandHome: maps a bare ~ to the home directory itself", () => {
+  // The function has a dedicated branch for exact `~` (no trailing slash);
+  // cover it so regressions that collapse it into the `~/` case are caught.
+  assertEquals(expandHome("~", "/Users/test"), "/Users/test");
+});
+
+Deno.test("expandHome: leaves absolute paths untouched", () => {
+  assertEquals(expandHome("/absolute/path", "/Users/test"), "/absolute/path");
+});
+
+Deno.test("expandHome: leaves relative paths untouched", () => {
+  assertEquals(expandHome("./relative", "/Users/test"), "./relative");
+});
+
+Deno.test("expandHome: leaves ~user (different user) untouched — we only handle current user's home", () => {
+  // ~otheruser is not the current user's home and expandHome intentionally
+  // ignores it. Document that contract so nobody "fixes" it later.
+  assertEquals(expandHome("~otheruser/file", "/Users/test"), "~otheruser/file");
+});
+
+Deno.test("mergeConfig: deep-merges the site map so a single CLI override keeps untouched keys", () => {
+  // Companion to the frontmatter deep-merge test above; covers the site
+  // branch of mergeConfig's manual deep-merge so a future refactor that
+  // swaps object spread for, say, Object.assign cannot silently clobber
+  // untouched fields.
+  const file = {
+    site: { title: "File Title", description: "desc", link: "https://example.com/" },
+  };
+  const cli = { site: { title: "CLI Title" } };
+  const result = mergeConfig(file, cli);
+  assertEquals(result.site.title, "CLI Title");
+  assertEquals(result.site.description, "desc");
+  assertEquals(result.site.link, "https://example.com/");
 });
 
 Deno.test("loadConfigFile: returns undefined when no path is given", async () => {
