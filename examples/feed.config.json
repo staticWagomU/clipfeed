@@ -1,0 +1,18 @@
+{
+  "input": "~/MyLife/Clippings",
+  "output": "./feed.xml",
+  "limit": 5,
+  "site": {
+    "title": "My reading log",
+    "description": "Recently clipped articles",
+    "link": "https://feed.example.com/",
+    "language": "ja"
+  },
+  "frontmatter": {
+    "title": "title",
+    "link": "source",
+    "description": "description",
+    "date": "created",
+    "author": "author"
+  }
+}

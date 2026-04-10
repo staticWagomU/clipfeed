@@ -1,0 +1,30 @@
+{
+  "name": "@wagomu/clipfeed",
+  "version": "0.1.0",
+  "exports": "./cli.ts",
+  "tasks": {
+    "test": "deno test -A",
+    "check": "deno fmt --check && deno lint && deno check cli.ts",
+    "fmt": "deno fmt",
+    "lint": "deno lint",
+    "run": "deno run -A cli.ts"
+  },
+  "imports": {
+    "@std/yaml": "jsr:@std/yaml@^1.0.5",
+    "@std/path": "jsr:@std/path@^1.0.8",
+    "@std/fs": "jsr:@std/fs@^1.0.5",
+    "@std/cli": "jsr:@std/cli@^1.0.7",
+    "@std/assert": "jsr:@std/assert@^1.0.7",
+    "@bradenmacdonald/s3-lite-client": "jsr:@bradenmacdonald/s3-lite-client@^0.9.0"
+  },
+  "fmt": {
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "singleQuote": false
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  }
+}
