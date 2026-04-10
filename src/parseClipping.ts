@@ -1,19 +1,28 @@
 import { parse as parseYaml } from "@std/yaml";
 import { parseFilename } from "./parseFilename.ts";
-import type { FeedItem, FrontmatterMap } from "./types.ts";
+import { resolveDate } from "./resolveDate.ts";
+import type { DateSource, FeedItem, FrontmatterMap } from "./types.ts";
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
+export type ParseClippingOptions = {
+  dateSource: DateSource;
+  /** File mtime, required only when dateSource === "mtime". */
+  mtime?: Date;
+};
+
 /**
- * Parse a single clipping file (Obsidian Web Clipper style) into a FeedItem.
+ * Parse a single clipping file into a FeedItem.
  *
  * The `map` argument declares which frontmatter keys supply each FeedItem field,
- * so users with customized Web Clipper templates can remap without code changes.
+ * so users with customized templates can remap without code changes.
+ * The `opts.dateSource` strategy determines which date is used for pubDate.
  */
 export function parseClipping(
   filename: string,
   content: string,
   map: FrontmatterMap,
+  opts: ParseClippingOptions = { dateSource: "filename" },
 ): FeedItem {
   const match = FRONTMATTER_RE.exec(content);
   if (!match) {
@@ -34,20 +43,37 @@ export function parseClipping(
   const description = pickString(fm, map.description) ?? "";
   const author = stripWikiLinks(pickString(fm, map.author));
 
-  const parsedName = parseFilename(filename);
-  // Filename timestamp is preferred because it carries seconds-level precision,
-  // while frontmatter `created` is typically a date-only value (midnight UTC)
-  // in Obsidian Web Clipper templates. This keeps chronological ordering stable.
-  const pubDate = parsedName.timestamp;
+  const parsedName = tryParseFilename(filename);
+  const frontmatterDate = pickDate(fm, map.date);
 
-  return {
-    title,
-    link,
-    description,
-    pubDate,
-    guid: parsedName.stem,
-    author,
-  };
+  const pubDate = resolveDate(opts.dateSource, {
+    filenameTimestamp: parsedName?.timestamp,
+    frontmatterDate,
+    mtime: opts.mtime,
+  });
+
+  const guid = parsedName?.stem ?? filename.replace(/\.md$/, "");
+
+  return { title, link, description, pubDate, guid, author };
+}
+
+/** Non-throwing wrapper around parseFilename — files without a timestamp prefix are allowed. */
+function tryParseFilename(filename: string) {
+  try {
+    return parseFilename(filename);
+  } catch {
+    return undefined;
+  }
+}
+
+function pickDate(fm: Record<string, unknown>, key: string): Date | undefined {
+  const v = fm[key];
+  if (v instanceof Date) return v;
+  if (typeof v === "string" && v.trim()) {
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? undefined : d;
+  }
+  return undefined;
 }
 
 function pickString(fm: Record<string, unknown>, key: string): string | undefined {

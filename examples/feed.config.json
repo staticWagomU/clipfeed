@@ -2,6 +2,8 @@
   "input": "~/MyLife/Clippings",
   "output": "./feed.xml",
   "limit": 5,
+  "format": "rss",
+  "dateSource": "filename",
   "site": {
     "title": "My reading log",
     "description": "Recently clipped articles",
@@ -14,5 +16,14 @@
     "description": "description",
     "date": "created",
     "author": "author"
+  },
+  "upload": {
+    "type": "s3",
+    "endpoint": "REPLACE_ME.r2.cloudflarestorage.com",
+    "region": "auto",
+    "bucket": "my-feed-bucket",
+    "objectKey": "feed.xml",
+    "accessKeyIdEnv": "R2_ACCESS_KEY_ID",
+    "secretAccessKeyEnv": "R2_SECRET_ACCESS_KEY"
   }
 }

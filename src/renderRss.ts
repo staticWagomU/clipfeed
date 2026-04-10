@@ -1,4 +1,5 @@
 import type { FeedItem, SiteMeta } from "./types.ts";
+import { joinUrl, xmlEscape } from "./xml.ts";
 
 /**
  * Render a list of FeedItems as RSS 2.0 XML.
@@ -46,19 +47,4 @@ function renderItem(item: FeedItem): string {
   }
   parts.push("    </item>");
   return parts.join("\n");
-}
-
-function xmlEscape(s: string): string {
-  // Order matters: escape & first so we don't double-escape the entities we emit.
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
-function joinUrl(base: string, path: string): string {
-  if (base.endsWith("/")) return base + path;
-  return base + "/" + path;
 }

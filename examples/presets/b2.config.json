@@ -1,0 +1,19 @@
+{
+  "input": "./Clippings",
+  "output": "./feed.xml",
+  "format": "rss",
+  "upload": {
+    "type": "s3",
+    "endpoint": "s3.us-west-004.backblazeb2.com",
+    "region": "us-west-004",
+    "bucket": "your-bucket",
+    "objectKey": "feed.xml",
+    "accessKeyIdEnv": "B2_APPLICATION_KEY_ID",
+    "secretAccessKeyEnv": "B2_APPLICATION_KEY"
+  },
+  "site": {
+    "title": "My Feed",
+    "description": "Feed description",
+    "link": "https://feed.example.com/"
+  }
+}

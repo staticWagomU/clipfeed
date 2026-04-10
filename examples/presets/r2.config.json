@@ -1,0 +1,19 @@
+{
+  "input": "./Clippings",
+  "output": "./feed.xml",
+  "format": "rss",
+  "upload": {
+    "type": "s3",
+    "endpoint": "YOUR_ACCOUNT_ID.r2.cloudflarestorage.com",
+    "region": "auto",
+    "bucket": "your-bucket",
+    "objectKey": "feed.xml",
+    "accessKeyIdEnv": "R2_ACCESS_KEY_ID",
+    "secretAccessKeyEnv": "R2_SECRET_ACCESS_KEY"
+  },
+  "site": {
+    "title": "My Feed",
+    "description": "Feed description",
+    "link": "https://feed.example.com/"
+  }
+}

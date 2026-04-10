@@ -1,17 +1,29 @@
-import type { ClipfeedConfig, FrontmatterMap, SiteMeta } from "./types.ts";
+import type {
+  ClipfeedConfig,
+  DateSource,
+  FeedFormat,
+  FrontmatterMap,
+  SiteMeta,
+  UploadConfig,
+} from "./types.ts";
 
 export type PartialClipfeedConfig = {
   input?: string;
   output?: string;
   limit?: number;
+  format?: FeedFormat;
+  dateSource?: DateSource;
   site?: Partial<SiteMeta>;
   frontmatter?: Partial<FrontmatterMap>;
+  upload?: UploadConfig;
 };
 
 export const DEFAULT_CONFIG: ClipfeedConfig = {
   input: "./Clippings",
   output: "./feed.xml",
   limit: 5,
+  format: "rss",
+  dateSource: "filename",
   site: {
     title: "My Clippings",
     description: "Recent web clippings",
@@ -41,6 +53,8 @@ export function mergeConfig(
     input: cli.input ?? f.input ?? DEFAULT_CONFIG.input,
     output: cli.output ?? f.output ?? DEFAULT_CONFIG.output,
     limit: cli.limit ?? f.limit ?? DEFAULT_CONFIG.limit,
+    format: cli.format ?? f.format ?? DEFAULT_CONFIG.format,
+    dateSource: cli.dateSource ?? f.dateSource ?? DEFAULT_CONFIG.dateSource,
     site: {
       ...DEFAULT_CONFIG.site,
       ...f.site,
@@ -51,6 +65,7 @@ export function mergeConfig(
       ...f.frontmatter,
       ...cli.frontmatter,
     },
+    upload: cli.upload ?? f.upload,
   };
 }
 

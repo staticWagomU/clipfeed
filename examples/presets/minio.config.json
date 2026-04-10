@@ -1,0 +1,20 @@
+{
+  "input": "./Clippings",
+  "output": "./feed.json",
+  "format": "jsonfeed",
+  "upload": {
+    "type": "s3",
+    "endpoint": "localhost:9000",
+    "region": "us-east-1",
+    "bucket": "clipfeed",
+    "objectKey": "feed.json",
+    "accessKeyIdEnv": "MINIO_ACCESS_KEY",
+    "secretAccessKeyEnv": "MINIO_SECRET_KEY",
+    "useSSL": false
+  },
+  "site": {
+    "title": "My Feed",
+    "description": "Feed description",
+    "link": "https://feed.example.com/"
+  }
+}

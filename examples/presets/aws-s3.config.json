@@ -1,0 +1,19 @@
+{
+  "input": "./Clippings",
+  "output": "./feed.xml",
+  "format": "atom",
+  "upload": {
+    "type": "s3",
+    "endpoint": "s3.amazonaws.com",
+    "region": "us-east-1",
+    "bucket": "your-bucket",
+    "objectKey": "feed.xml",
+    "accessKeyIdEnv": "AWS_ACCESS_KEY_ID",
+    "secretAccessKeyEnv": "AWS_SECRET_ACCESS_KEY"
+  },
+  "site": {
+    "title": "My Feed",
+    "description": "Feed description",
+    "link": "https://feed.example.com/"
+  }
+}
