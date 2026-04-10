@@ -1,3 +1,4 @@
+import { is } from "@core/unknownutil";
 import type {
   ClipfeedConfig,
   DateSource,
@@ -17,6 +18,16 @@ export type PartialClipfeedConfig = {
   frontmatter?: Partial<FrontmatterMap>;
   upload?: UploadConfig;
 };
+
+/** Runtime-checkable predicate for {@link FeedFormat}. Reused by the CLI flag parser. */
+export const isFeedFormat = is.LiteralOneOf(
+  ["rss", "atom", "jsonfeed"],
+) satisfies (x: unknown) => x is FeedFormat;
+
+/** Runtime-checkable predicate for {@link DateSource}. Reused by the CLI flag parser. */
+export const isDateSource = is.LiteralOneOf(
+  ["filename", "frontmatter", "mtime"],
+) satisfies (x: unknown) => x is DateSource;
 
 export const DEFAULT_CONFIG: ClipfeedConfig = {
   input: "./Clippings",

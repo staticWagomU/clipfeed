@@ -1,5 +1,6 @@
 import { parseArgs } from "@std/cli/parse-args";
 import { join } from "@std/path";
+import { ensure } from "@core/unknownutil";
 import { parseClipping } from "./src/parseClipping.ts";
 import { buildFeed } from "./src/buildFeed.ts";
 import { renderRss } from "./src/renderRss.ts";
@@ -8,6 +9,8 @@ import { renderJsonFeed } from "./src/renderJsonFeed.ts";
 import {
   DEFAULT_CONFIG,
   expandHome,
+  isDateSource,
+  isFeedFormat,
   loadConfigFile,
   mergeConfig,
   type PartialClipfeedConfig,
@@ -56,12 +59,7 @@ export async function main(args: string[]): Promise<void> {
   }
 
   const file = await loadConfigFile(flags.config);
-  const cli: PartialClipfeedConfig = {};
-  if (flags.input) cli.input = flags.input;
-  if (flags.output) cli.output = flags.output;
-  if (flags.limit) cli.limit = Number(flags.limit);
-  if (flags.format) cli.format = assertFormat(flags.format);
-  if (flags["date-source"]) cli.dateSource = assertDateSource(flags["date-source"]);
+  const cli = flagsToPartialConfig(flags);
 
   const config = mergeConfig(file, cli);
   const home = Deno.env.get("HOME") ?? "";
@@ -91,9 +89,50 @@ export async function main(args: string[]): Promise<void> {
   }
 }
 
-function assertFormat(v: string): "rss" | "atom" | "jsonfeed" {
-  if (v === "rss" || v === "atom" || v === "jsonfeed") return v;
-  throw new Error(`--format must be one of: rss, atom, jsonfeed (got "${v}")`);
+/**
+ * Shape of the subset of `parseArgs` output this CLI reads. Narrowing the
+ * parameter type (instead of accepting the full `parseArgs` return value)
+ * keeps {@link flagsToPartialConfig} trivially unit-testable with plain
+ * object literals and decouples it from `@std/cli` internals.
+ */
+type CliFlagInput = {
+  input?: string;
+  output?: string;
+  limit?: string;
+  format?: string;
+  "date-source"?: string;
+};
+
+/**
+ * Project the raw CLI flag strings into a {@link PartialClipfeedConfig}.
+ *
+ * Only flags the user explicitly passed become keys on the result — a missing
+ * flag stays absent so that `mergeConfig` can fall back to the file config or
+ * the built-in defaults. We deliberately use `!== undefined` (not a truthy
+ * check) to preserve that "user explicitly said so" semantics: an empty string
+ * or `--limit 0` stays a user-provided value rather than being silently merged
+ * away.
+ *
+ * `format` and `date-source` are validated through `ensure` + the predicates
+ * re-exported from `config.ts`, so unknown values fail fast with a structured
+ * `AssertError` from `@core/unknownutil` instead of hand-rolled error strings.
+ */
+function flagsToPartialConfig(flags: CliFlagInput): PartialClipfeedConfig {
+  const cli: PartialClipfeedConfig = {};
+  if (flags.input !== undefined) cli.input = flags.input;
+  if (flags.output !== undefined) cli.output = flags.output;
+  if (flags.limit !== undefined) cli.limit = Number(flags.limit);
+  if (flags.format !== undefined) {
+    cli.format = ensure(flags.format, isFeedFormat, {
+      message: `--format must be one of: rss, atom, jsonfeed`,
+    });
+  }
+  if (flags["date-source"] !== undefined) {
+    cli.dateSource = ensure(flags["date-source"], isDateSource, {
+      message: `--date-source must be one of: filename, frontmatter, mtime`,
+    });
+  }
+  return cli;
 }
 
 function renderFeed(
@@ -108,11 +147,6 @@ function renderFeed(
     case "jsonfeed":
       return renderJsonFeed(items, config.site);
   }
-}
-
-function assertDateSource(v: string): "filename" | "frontmatter" | "mtime" {
-  if (v === "filename" || v === "frontmatter" || v === "mtime") return v;
-  throw new Error(`--date-source must be one of: filename, frontmatter, mtime (got "${v}")`);
 }
 
 async function readClippings(
