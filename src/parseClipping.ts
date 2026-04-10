@@ -1,5 +1,6 @@
 import { parse as parseYaml } from "@std/yaml";
 import { parseFilename } from "./parseFilename.ts";
+import { preprocessFrontmatter } from "./preprocessFrontmatter.ts";
 import { resolveDate } from "./resolveDate.ts";
 import type { DateSource, FeedItem, FrontmatterMap } from "./types.ts";
 
@@ -29,7 +30,7 @@ export function parseClipping(
     throw new Error(`parseClipping: frontmatter not found in "${filename}"`);
   }
 
-  const fm = parseYaml(match[1]) as Record<string, unknown> | null;
+  const fm = parseYaml(preprocessFrontmatter(match[1])) as Record<string, unknown> | null;
   if (!fm || typeof fm !== "object") {
     throw new Error(`parseClipping: frontmatter is empty or invalid in "${filename}"`);
   }

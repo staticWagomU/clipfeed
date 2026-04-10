@@ -71,6 +71,19 @@ author: "[[Jane Doe]]"
   assertEquals(item.author, "Jane Doe");
 });
 
+Deno.test("parseClipping: preserves title containing ' #' that YAML would otherwise strip as a comment", () => {
+  // Without preprocessing, YAML parses `title: Recipe # serves 4` as just
+  // `Recipe`, then the required-title check may still pass but data is lost.
+  // With preprocessing, the entire literal value survives end-to-end.
+  const content = `---
+title: Recipe # serves 4
+source: "https://example.com/"
+---
+body`;
+  const item = parseClipping("20260101000000-recipe.md", content, DEFAULT_MAP);
+  assertEquals(item.title, "Recipe # serves 4");
+});
+
 Deno.test("parseClipping: throws when frontmatter is missing", () => {
   assertThrows(
     () => parseClipping("20260101000000-x.md", "no frontmatter body", DEFAULT_MAP),
