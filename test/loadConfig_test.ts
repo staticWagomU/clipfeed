@@ -1,5 +1,16 @@
-import { assertEquals } from "@std/assert";
-import { DEFAULT_CONFIG, expandHome, mergeConfig } from "../src/config.ts";
+import { assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
+import { DEFAULT_CONFIG, expandHome, loadConfigFile, mergeConfig } from "../src/config.ts";
+
+/**
+ * Write `body` to a fresh temp file and return its path. Caller is responsible
+ * for cleanup via `Deno.remove`. Keeping this helper local to the test file
+ * avoids pulling in a shared fixture module just for a handful of cases.
+ */
+async function writeTempConfig(body: string): Promise<string> {
+  const path = await Deno.makeTempFile({ prefix: "clipfeed-cfg-", suffix: ".json" });
+  await Deno.writeTextFile(path, body);
+  return path;
+}
 
 Deno.test("mergeConfig: returns defaults when nothing is provided", () => {
   const result = mergeConfig(undefined, {});
@@ -81,4 +92,85 @@ Deno.test("expandHome: replaces leading ~ with $HOME", () => {
 Deno.test("DEFAULT_CONFIG: has sensible defaults", () => {
   assertEquals(DEFAULT_CONFIG.limit, 5);
   assertEquals(DEFAULT_CONFIG.output, "./feed.xml");
+});
+
+Deno.test("loadConfigFile: returns undefined when no path is given", async () => {
+  assertEquals(await loadConfigFile(undefined), undefined);
+  assertEquals(await loadConfigFile(""), undefined);
+});
+
+Deno.test("loadConfigFile: parses a valid config file", async () => {
+  const path = await writeTempConfig(JSON.stringify({
+    input: "./clips",
+    limit: 7,
+    format: "atom",
+    dateSource: "frontmatter",
+    site: { title: "t", description: "d", link: "https://example.com/" },
+  }));
+  try {
+    const cfg = await loadConfigFile(path);
+    assertEquals(cfg?.input, "./clips");
+    assertEquals(cfg?.limit, 7);
+    assertEquals(cfg?.format, "atom");
+    assertEquals(cfg?.dateSource, "frontmatter");
+    assertEquals(cfg?.site?.title, "t");
+  } finally {
+    await Deno.remove(path);
+  }
+});
+
+Deno.test("loadConfigFile: accepts a fully valid upload block", async () => {
+  const path = await writeTempConfig(JSON.stringify({
+    upload: {
+      type: "s3",
+      endpoint: "r2.example.com",
+      region: "auto",
+      bucket: "b",
+      objectKey: "feed.xml",
+      useSSL: true,
+    },
+  }));
+  try {
+    const cfg = await loadConfigFile(path);
+    assertEquals(cfg?.upload?.type, "s3");
+    assertEquals(cfg?.upload?.bucket, "b");
+    assertEquals(cfg?.upload?.useSSL, true);
+  } finally {
+    await Deno.remove(path);
+  }
+});
+
+Deno.test("loadConfigFile: rejects an unknown format literal", async () => {
+  const path = await writeTempConfig(JSON.stringify({ format: "xml" }));
+  try {
+    const err = await assertRejects(() => loadConfigFile(path), Error);
+    // The custom `message` option passed to `ensure` must surface the path so
+    // the user can tell which file to fix.
+    assertStringIncludes(err.message, path);
+  } finally {
+    await Deno.remove(path);
+  }
+});
+
+Deno.test("loadConfigFile: rejects a wrong-typed limit", async () => {
+  const path = await writeTempConfig(JSON.stringify({ limit: "five" }));
+  try {
+    const err = await assertRejects(() => loadConfigFile(path), Error);
+    assertStringIncludes(err.message, path);
+  } finally {
+    await Deno.remove(path);
+  }
+});
+
+Deno.test("loadConfigFile: rejects an upload block missing required fields", async () => {
+  // `endpoint`, `region`, `objectKey` are required on UploadConfig.
+  const path = await writeTempConfig(JSON.stringify({
+    upload: { type: "s3", bucket: "b" },
+  }));
+  try {
+    const err = await assertRejects(() => loadConfigFile(path), Error);
+    assertStringIncludes(err.message, path);
+  } finally {
+    await Deno.remove(path);
+  }
 });

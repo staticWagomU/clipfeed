@@ -1,4 +1,4 @@
-import { is } from "@core/unknownutil";
+import { as, ensure, is } from "@core/unknownutil";
 import type {
   ClipfeedConfig,
   DateSource,
@@ -28,6 +28,50 @@ export const isFeedFormat = is.LiteralOneOf(
 export const isDateSource = is.LiteralOneOf(
   ["filename", "frontmatter", "mtime"],
 ) satisfies (x: unknown) => x is DateSource;
+
+const isPartialSiteMeta = is.ObjectOf({
+  title: as.Optional(is.String),
+  description: as.Optional(is.String),
+  link: as.Optional(is.String),
+  language: as.Optional(is.String),
+}) satisfies (x: unknown) => x is Partial<SiteMeta>;
+
+const isPartialFrontmatterMap = is.ObjectOf({
+  title: as.Optional(is.String),
+  link: as.Optional(is.String),
+  description: as.Optional(is.String),
+  date: as.Optional(is.String),
+  author: as.Optional(is.String),
+}) satisfies (x: unknown) => x is Partial<FrontmatterMap>;
+
+const isUploadConfig = is.ObjectOf({
+  type: is.LiteralOf("s3"),
+  endpoint: is.String,
+  region: is.String,
+  bucket: is.String,
+  objectKey: is.String,
+  accessKeyIdEnv: as.Optional(is.String),
+  secretAccessKeyEnv: as.Optional(is.String),
+  useSSL: as.Optional(is.Boolean),
+}) satisfies (x: unknown) => x is UploadConfig;
+
+/**
+ * Runtime schema for {@link PartialClipfeedConfig}. Used to validate JSON
+ * loaded from disk so `loadConfigFile` doesn't have to rely on an unchecked
+ * `as` cast. The `satisfies` clause below guarantees at compile time that
+ * this predicate produces a type assignable to {@link PartialClipfeedConfig};
+ * if the two drift apart, the build breaks here rather than silently at runtime.
+ */
+export const isPartialClipfeedConfig = is.ObjectOf({
+  input: as.Optional(is.String),
+  output: as.Optional(is.String),
+  limit: as.Optional(is.Number),
+  format: as.Optional(isFeedFormat),
+  dateSource: as.Optional(isDateSource),
+  site: as.Optional(isPartialSiteMeta),
+  frontmatter: as.Optional(isPartialFrontmatterMap),
+  upload: as.Optional(isUploadConfig),
+}) satisfies (x: unknown) => x is PartialClipfeedConfig;
 
 export const DEFAULT_CONFIG: ClipfeedConfig = {
   input: "./Clippings",
@@ -109,11 +153,19 @@ export function expandHome(path: string, home: string): string {
   return path;
 }
 
-/** Load a JSON config file from disk. Returns undefined if the path is falsy. */
+/**
+ * Load a JSON config file from disk. Returns undefined if the path is falsy.
+ *
+ * The parsed JSON is validated against {@link isPartialClipfeedConfig} via
+ * `ensure`, so a malformed config fails fast with an `AssertError` pointing at
+ * the offending field instead of propagating untyped garbage into `mergeConfig`.
+ */
 export async function loadConfigFile(
   path: string | undefined,
 ): Promise<PartialClipfeedConfig | undefined> {
   if (!path) return undefined;
   const text = await Deno.readTextFile(path);
-  return JSON.parse(text) as PartialClipfeedConfig;
+  return ensure(JSON.parse(text), isPartialClipfeedConfig, {
+    message: `Invalid config file: ${path}`,
+  });
 }
