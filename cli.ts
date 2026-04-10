@@ -79,11 +79,31 @@ export async function main(args: string[]): Promise<void> {
         `--upload was requested but no 'upload' block is present in the config file`,
       );
     }
-    if (config.upload.type === "s3") {
-      await uploadS3(outputPath, config.upload);
-    } else {
-      // exhaustiveness check: compile error here if a new UploadConfig variant is added
-      const _never: never = config.upload.type;
+    await runUpload(outputPath, config.upload);
+  }
+}
+
+/**
+ * Dispatch on the upload backend discriminator. Extracted so {@link main}
+ * doesn't carry the variant-by-variant handling inline, and modeled on
+ * {@link renderFeed}'s `switch`-on-`type` shape so the CLI has one consistent
+ * dispatch style.
+ *
+ * Note: unlike `renderFeed`, this function returns `Promise<void>`, so TS
+ * cannot detect a missed variant through "not all paths return a value".
+ * The `default` branch therefore assigns `upload.type` to `never` to force a
+ * build break when a new {@link UploadConfig} member is added without a handler.
+ */
+async function runUpload(
+  outputPath: string,
+  upload: NonNullable<ReturnType<typeof mergeConfig>["upload"]>,
+): Promise<void> {
+  switch (upload.type) {
+    case "s3":
+      await uploadS3(outputPath, upload);
+      return;
+    default: {
+      const _never: never = upload.type;
       throw new Error(`Unknown upload type: ${_never}`);
     }
   }
