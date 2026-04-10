@@ -115,7 +115,7 @@ async function runUpload(
  * keeps {@link flagsToPartialConfig} trivially unit-testable with plain
  * object literals and decouples it from `@std/cli` internals.
  */
-type CliFlagInput = {
+export type CliFlagInput = {
   input?: string;
   output?: string;
   limit?: string;
@@ -137,7 +137,7 @@ type CliFlagInput = {
  * re-exported from `config.ts`, so unknown values fail fast with a structured
  * `AssertError` from `@core/unknownutil` instead of hand-rolled error strings.
  */
-function flagsToPartialConfig(flags: CliFlagInput): PartialClipfeedConfig {
+export function flagsToPartialConfig(flags: CliFlagInput): PartialClipfeedConfig {
   const cli: PartialClipfeedConfig = {};
   if (flags.input !== undefined) cli.input = flags.input;
   if (flags.output !== undefined) cli.output = flags.output;
