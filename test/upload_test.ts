@@ -89,3 +89,36 @@ Deno.test("resolveS3Credentials: throws when access key env var is missing", () 
     "MISSING_AK",
   );
 });
+
+Deno.test("resolveS3Credentials: throws with the SECRET env var name when only the secret is missing", () => {
+  // Symmetric counterpart to the access-key case: the error must point at the
+  // specific env var the user forgot, not just the first one the code checks.
+  const cfg: UploadConfig = {
+    type: "s3",
+    endpoint: "x",
+    region: "auto",
+    bucket: "b",
+    objectKey: "feed.xml",
+    accessKeyIdEnv: "PRESENT_AK",
+    secretAccessKeyEnv: "MISSING_SK",
+  };
+  const env: Record<string, string> = { PRESENT_AK: "ak-value" };
+  assertThrows(
+    () => resolveS3Credentials(cfg, (k) => env[k]),
+    Error,
+    "MISSING_SK",
+  );
+});
+
+Deno.test("resolveS3Options: useSSL defaults to true when not set in config", () => {
+  const cfg: UploadConfig = {
+    type: "s3",
+    endpoint: "s3.amazonaws.com",
+    region: "us-east-1",
+    bucket: "b",
+    objectKey: "feed.xml",
+  };
+  const env = { AWS_ACCESS_KEY_ID: "a", AWS_SECRET_ACCESS_KEY: "s" };
+  const opts = resolveS3Options(cfg, (k) => env[k as keyof typeof env]);
+  assertEquals(opts.useSSL, true);
+});
