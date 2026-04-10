@@ -8,10 +8,16 @@ import { joinUrl, xmlEscape } from "./xml.ts";
  * - All text nodes and attribute values are XML-escaped.
  * - guid is emitted with isPermaLink="false" because we use the filename stem,
  *   not a resolvable URL, as the stable identifier.
+ *
+ * `now` is injectable so tests can assert on `<lastBuildDate>` deterministically.
+ * Production callers omit it and get wall-clock time.
  */
-export function renderRss(items: readonly FeedItem[], site: SiteMeta): string {
+export function renderRss(
+  items: readonly FeedItem[],
+  site: SiteMeta,
+  now: Date = new Date(),
+): string {
   const selfHref = joinUrl(site.link, "feed.xml");
-  const now = new Date();
 
   const itemXml = items.map((item) => renderItem(item)).join("\n");
   // Optional element: emit a fully-formed line (with trailing newline) when

@@ -7,11 +7,17 @@ import { hostnameOf, joinUrl, xmlEscape } from "./xml.ts";
  * - updated / published are ISO 8601.
  * - entry <id> uses the tag: URI scheme (RFC 4151) so guids don't need to be URLs.
  * - feed <id> uses the site.link as a URI.
+ *
+ * `now` is injectable so tests can assert on the feed-level `<updated>` value
+ * deterministically when the item list is empty. Production callers omit it.
  */
-export function renderAtom(items: readonly FeedItem[], site: SiteMeta): string {
+export function renderAtom(
+  items: readonly FeedItem[],
+  site: SiteMeta,
+  now: Date = new Date(),
+): string {
   const selfHref = joinUrl(site.link, "feed.xml");
   const host = hostnameOf(site.link);
-  const now = new Date();
   const latest = items.at(0)?.pubDate ?? now;
 
   const entryXml = items.map((i) => renderEntry(i, host)).join("\n");
