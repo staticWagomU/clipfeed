@@ -22,20 +22,19 @@ export function resolveDate(source: DateSource, inputs: DateInputs): Date {
         );
       }
       return inputs.filenameTimestamp;
-    case "frontmatter":
-      return inputs.frontmatterDate ??
-        inputs.filenameTimestamp ??
-        raise(
+    case "frontmatter": {
+      const d = inputs.frontmatterDate ?? inputs.filenameTimestamp;
+      if (!d) {
+        throw new Error(
           "resolveDate: dateSource=frontmatter requires either a frontmatter date or filename timestamp",
         );
+      }
+      return d;
+    }
     case "mtime":
       if (!inputs.mtime) {
         throw new Error("resolveDate: dateSource=mtime requires a file mtime");
       }
       return inputs.mtime;
   }
-}
-
-function raise(msg: string): never {
-  throw new Error(msg);
 }
