@@ -23,7 +23,9 @@ Usage:
 Options:
   --config <path>       Path to JSON config file
   --input <dir>         Directory containing clipping .md files
-  --output <path>       Output path (default: ./feed.xml)
+  --output <path>       Output path. Default depends on --format:
+                        rss → ./feed.xml, atom → ./feed.atom.xml,
+                        jsonfeed → ./feed.json
   --limit <n>           Max items in the feed (default: ${DEFAULT_CONFIG.limit})
   --format <fmt>        Feed format: rss | atom | jsonfeed (default: rss)
   --date-source <src>   Date source: filename | frontmatter | mtime (default: filename)

@@ -46,6 +46,31 @@ Deno.test("mergeConfig: deep-merges frontmatter map one level", () => {
   assertEquals(result.frontmatter.link, "source");
 });
 
+Deno.test("mergeConfig: picks ./feed.atom.xml as the default output when format is atom", () => {
+  const result = mergeConfig(undefined, { format: "atom" });
+  assertEquals(result.output, "./feed.atom.xml");
+});
+
+Deno.test("mergeConfig: picks ./feed.json as the default output when format is jsonfeed", () => {
+  const result = mergeConfig(undefined, { format: "jsonfeed" });
+  assertEquals(result.output, "./feed.json");
+});
+
+Deno.test("mergeConfig: format from file config selects the matching default output", () => {
+  const result = mergeConfig({ format: "atom" }, {});
+  assertEquals(result.output, "./feed.atom.xml");
+});
+
+Deno.test("mergeConfig: an explicit CLI output overrides the format-based default", () => {
+  const result = mergeConfig(undefined, { format: "atom", output: "./custom.xml" });
+  assertEquals(result.output, "./custom.xml");
+});
+
+Deno.test("mergeConfig: an explicit file output overrides the format-based default", () => {
+  const result = mergeConfig({ format: "jsonfeed", output: "./legacy.xml" }, {});
+  assertEquals(result.output, "./legacy.xml");
+});
+
 Deno.test("expandHome: replaces leading ~ with $HOME", () => {
   const home = "/Users/test";
   assertEquals(expandHome("~/MyLife/Clippings", home), "/Users/test/MyLife/Clippings");

@@ -45,19 +45,19 @@ deno run -A cli.ts --config ./feed.config.json --format atom --limit 20
 
 ## Configuration
 
-| Field              | Type    | Default        | Description                                                     |
-| ------------------ | ------- | -------------- | --------------------------------------------------------------- |
-| `input`            | string  | `./Clippings`  | Directory containing `.md` clippings                            |
-| `output`           | string  | `./feed.xml`   | Output path                                                     |
-| `limit`            | number  | `5`            | Max items in the feed                                           |
-| `format`           | enum    | `"rss"`        | `rss` / `atom` / `jsonfeed`                                     |
-| `dateSource`       | enum    | `"filename"`   | `filename` / `frontmatter` / `mtime` (see below)                |
-| `site.title`       | string  | `My Clippings` | Feed `<title>`                                                  |
-| `site.description` | string  | —              | Feed description / subtitle                                     |
-| `site.link`        | string  | —              | Public URL of the feed's HTML landing page                      |
-| `site.language`    | string  | `en`           | BCP 47 language tag                                             |
-| `frontmatter.*`    | mapping | see below      | Maps feed fields to frontmatter keys (for non-default clippers) |
-| `upload`           | object  | —              | Upload backend — see [Upload backends](#upload-backends)        |
+| Field              | Type    | Default        | Description                                                                                  |
+| ------------------ | ------- | -------------- | -------------------------------------------------------------------------------------------- |
+| `input`            | string  | `./Clippings`  | Directory containing `.md` clippings                                                         |
+| `output`           | string  | format-based   | Output path. Default: `./feed.xml` (rss), `./feed.atom.xml` (atom), `./feed.json` (jsonfeed) |
+| `limit`            | number  | `5`            | Max items in the feed                                                                        |
+| `format`           | enum    | `"rss"`        | `rss` / `atom` / `jsonfeed`                                                                  |
+| `dateSource`       | enum    | `"filename"`   | `filename` / `frontmatter` / `mtime` (see below)                                             |
+| `site.title`       | string  | `My Clippings` | Feed `<title>`                                                                               |
+| `site.description` | string  | —              | Feed description / subtitle                                                                  |
+| `site.link`        | string  | —              | Public URL of the feed's HTML landing page                                                   |
+| `site.language`    | string  | `en`           | BCP 47 language tag                                                                          |
+| `frontmatter.*`    | mapping | see below      | Maps feed fields to frontmatter keys (for non-default clippers)                              |
+| `upload`           | object  | —              | Upload backend — see [Upload backends](#upload-backends)                                     |
 
 ### Frontmatter mapping
 

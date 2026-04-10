@@ -43,17 +43,22 @@ export const DEFAULT_CONFIG: ClipfeedConfig = {
  * Merge config sources with precedence: CLI flags > file config > defaults.
  * `site` and `frontmatter` are merged one level deep so partial overrides
  * don't clobber untouched keys.
+ *
+ * `output` is special: if the user did not pick one anywhere, we derive a
+ * sensible default from the final `format` (see {@link defaultOutputForFormat})
+ * so `--format atom` doesn't silently write Atom XML into `./feed.xml`.
  */
 export function mergeConfig(
   file: PartialClipfeedConfig | undefined,
   cli: PartialClipfeedConfig,
 ): ClipfeedConfig {
   const f = file ?? {};
+  const format = cli.format ?? f.format ?? DEFAULT_CONFIG.format;
   return {
     input: cli.input ?? f.input ?? DEFAULT_CONFIG.input,
-    output: cli.output ?? f.output ?? DEFAULT_CONFIG.output,
+    output: cli.output ?? f.output ?? defaultOutputForFormat(format),
     limit: cli.limit ?? f.limit ?? DEFAULT_CONFIG.limit,
-    format: cli.format ?? f.format ?? DEFAULT_CONFIG.format,
+    format,
     dateSource: cli.dateSource ?? f.dateSource ?? DEFAULT_CONFIG.dateSource,
     site: {
       ...DEFAULT_CONFIG.site,
@@ -67,6 +72,23 @@ export function mergeConfig(
     },
     upload: cli.upload ?? f.upload,
   };
+}
+
+/**
+ * Default output path per feed format. Picked only when neither the CLI nor
+ * the config file names an explicit `output`. Keeping the mapping here (not
+ * in `DEFAULT_CONFIG`) lets `DEFAULT_CONFIG.output` stay as the legacy
+ * `./feed.xml` literal for any callers that read it directly.
+ */
+export function defaultOutputForFormat(format: FeedFormat): string {
+  switch (format) {
+    case "rss":
+      return "./feed.xml";
+    case "atom":
+      return "./feed.atom.xml";
+    case "jsonfeed":
+      return "./feed.json";
+  }
 }
 
 /** Replace a leading `~` with the given home directory path. */
