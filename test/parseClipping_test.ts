@@ -103,3 +103,109 @@ source: "https://example.com/"
     "title",
   );
 });
+
+Deno.test("parseClipping: honors a custom FrontmatterMap for non-default clippers", () => {
+  // Reproduces the README example: Hugo/Jekyll-style frontmatter keys.
+  const customMap = {
+    title: "headline",
+    link: "original_url",
+    description: "excerpt",
+    date: "published_at",
+    author: "byline",
+  };
+  const content = `---
+headline: "Custom mapped title"
+original_url: "https://example.com/post"
+excerpt: "short excerpt"
+published_at: "2026-03-15T10:30:00Z"
+byline: "Jane Doe"
+---
+body`;
+  const item = parseClipping("20260404224008-mapped.md", content, customMap);
+  assertEquals(item.title, "Custom mapped title");
+  assertEquals(item.link, "https://example.com/post");
+  assertEquals(item.description, "short excerpt");
+  assertEquals(item.author, "Jane Doe");
+});
+
+Deno.test("parseClipping: picks the first entry when a mapped field is a YAML list (e.g. author)", () => {
+  // Web Clipper emits `author: ["[[Name]]"]` as a list; pickString should
+  // take the first element and stripWikiLinks should still unwrap it.
+  const content = `---
+title: "T"
+source: "https://example.com/"
+author:
+  - "[[Primary Author]]"
+  - "[[Second Author]]"
+---
+body`;
+  const item = parseClipping("20260101000000-t.md", content, DEFAULT_MAP);
+  assertEquals(item.author, "Primary Author");
+});
+
+Deno.test("parseClipping: dateSource=frontmatter picks the frontmatter date when present", () => {
+  const content = `---
+title: "T"
+source: "https://example.com/"
+created: "2026-03-15T10:30:00Z"
+---
+body`;
+  const item = parseClipping(
+    "20260101000000-t.md",
+    content,
+    DEFAULT_MAP,
+    { dateSource: "frontmatter" },
+  );
+  assertEquals(item.pubDate.toISOString(), "2026-03-15T10:30:00.000Z");
+});
+
+Deno.test("parseClipping: dateSource=frontmatter falls back to filename timestamp when frontmatter date is absent", () => {
+  const content = `---
+title: "T"
+source: "https://example.com/"
+---
+body`;
+  const item = parseClipping(
+    "20260404224008-t.md",
+    content,
+    DEFAULT_MAP,
+    { dateSource: "frontmatter" },
+  );
+  assertEquals(item.pubDate.toISOString(), "2026-04-04T22:40:08.000Z");
+});
+
+Deno.test("parseClipping: dateSource=mtime uses the injected mtime instead of filename or frontmatter", () => {
+  const content = `---
+title: "T"
+source: "https://example.com/"
+created: "2026-03-15T10:30:00Z"
+---
+body`;
+  const mtime = new Date("2026-06-01T00:00:00Z");
+  const item = parseClipping(
+    "20260101000000-t.md",
+    content,
+    DEFAULT_MAP,
+    { dateSource: "mtime", mtime },
+  );
+  assertEquals(item.pubDate.toISOString(), "2026-06-01T00:00:00.000Z");
+});
+
+Deno.test("parseClipping: derives guid from filename when the file has no timestamp prefix", () => {
+  // tryParseFilename swallows the "no prefix" error; the fallback branch
+  // computes guid by stripping the .md extension.
+  const content = `---
+title: "T"
+source: "https://example.com/"
+created: "2026-03-15T10:30:00Z"
+---
+body`;
+  const item = parseClipping(
+    "no-timestamp-here.md",
+    content,
+    DEFAULT_MAP,
+    { dateSource: "frontmatter" },
+  );
+  assertEquals(item.guid, "no-timestamp-here");
+  assertEquals(item.pubDate.toISOString(), "2026-03-15T10:30:00.000Z");
+});
