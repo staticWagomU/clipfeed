@@ -108,7 +108,7 @@ Deno.test("main: reads a directory of clippings and writes an RSS feed to --outp
       "10",
     ]);
     const written = await Deno.readTextFile(outputPath);
-    // The rendering itself is covered in renderRss_test; here we only
+    // The rendering itself is covered in renderRss.test; here we only
     // verify that the CLI connected the pipes: parse -> build -> render -> write.
     assertStringIncludes(written, "<?xml");
     assertStringIncludes(written, "<title>Hello World</title>");
