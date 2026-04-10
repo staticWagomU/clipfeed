@@ -1,8 +1,17 @@
 import { parse as parseYaml } from "@std/yaml";
+import { ensure, is } from "@core/unknownutil";
 import { parseFilename } from "./parseFilename.ts";
 import { preprocessFrontmatter } from "./preprocessFrontmatter.ts";
 import { resolveDate } from "./resolveDate.ts";
 import type { DateSource, FeedItem, FrontmatterMap } from "./types.ts";
+
+/**
+ * Runtime predicate for a parsed YAML frontmatter body. We only require that
+ * the result is a plain object keyed by strings; individual field types are
+ * validated later via {@link pickString} / {@link pickDate} because the set
+ * of interesting keys is configurable through {@link FrontmatterMap}.
+ */
+const isFrontmatterRecord = is.RecordOf(is.Unknown, is.String);
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
@@ -30,10 +39,10 @@ export function parseClipping(
     throw new Error(`parseClipping: frontmatter not found in "${filename}"`);
   }
 
-  const fm = parseYaml(preprocessFrontmatter(match[1])) as Record<string, unknown> | null;
-  if (!fm || typeof fm !== "object") {
-    throw new Error(`parseClipping: frontmatter is empty or invalid in "${filename}"`);
-  }
+  const parsed: unknown = parseYaml(preprocessFrontmatter(match[1]));
+  const fm = ensure(parsed, isFrontmatterRecord, {
+    message: `parseClipping: frontmatter is empty or invalid in "${filename}"`,
+  });
 
   const title = pickString(fm, map.title);
   if (!title) {
