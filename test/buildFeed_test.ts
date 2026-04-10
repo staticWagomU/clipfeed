@@ -53,3 +53,31 @@ Deno.test("buildFeed: breaks ties by guid ascending for deterministic output", (
   const result = buildFeed(items, 10);
   assertEquals(result.map((i) => i.guid), ["a", "b", "c"]);
 });
+
+Deno.test("buildFeed: returns an empty array when given no items", () => {
+  assertEquals(buildFeed([], 10), []);
+});
+
+Deno.test("buildFeed: returns all items when limit exceeds input length", () => {
+  const items = [
+    mkItem("a", "2026-01-01T00:00:00Z"),
+    mkItem("b", "2026-02-01T00:00:00Z"),
+  ];
+  const result = buildFeed(items, 100);
+  assertEquals(result.length, 2);
+  assertEquals(result.map((i) => i.guid), ["b", "a"]);
+});
+
+Deno.test("buildFeed: limit of 0 returns an empty array", () => {
+  const items = [
+    mkItem("a", "2026-01-01T00:00:00Z"),
+    mkItem("b", "2026-02-01T00:00:00Z"),
+  ];
+  assertEquals(buildFeed(items, 0), []);
+});
+
+Deno.test("buildFeed: single-item input is returned as-is", () => {
+  const items = [mkItem("only", "2026-01-01T00:00:00Z")];
+  const result = buildFeed(items, 5);
+  assertEquals(result.map((i) => i.guid), ["only"]);
+});
