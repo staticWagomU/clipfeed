@@ -1,3 +1,4 @@
 cloudflare_api_token  = "REPLACE_ME"
 cloudflare_account_id = "REPLACE_ME"
 zone_id               = "REPLACE_ME"
+feed_domain           = "REPLACE_ME"

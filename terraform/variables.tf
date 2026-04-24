@@ -29,6 +29,5 @@ variable "bucket_location" {
 variable "feed_domain" {
   description = "Public custom domain that serves feed.xml from the R2 bucket"
   type        = string
-  default     = "feed.wagomu.me"
 }
 
