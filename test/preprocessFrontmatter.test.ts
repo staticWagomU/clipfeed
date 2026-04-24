@@ -1,4 +1,5 @@
-import { assertEquals, assertStringIncludes } from "@std/assert";
+import { assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
+import { parse as parseYaml } from "@std/yaml";
 import { preprocessFrontmatter } from "../src/preprocessFrontmatter.ts";
 
 Deno.test("preprocessFrontmatter: wraps unquoted value containing ' #' in single quotes so YAML keeps it literal", () => {
@@ -56,4 +57,48 @@ Deno.test("preprocessFrontmatter: does not touch list item lines (no key before 
   - clippings
   - tech`;
   assertEquals(preprocessFrontmatter(input), input);
+});
+
+Deno.test("preprocessFrontmatter: rewrites invalid double-quote escapes so strict YAML parses them as literal backslash + char", () => {
+  // Obsidian Web Clipper wraps page text in double quotes without re-escaping
+  // backslashes. `\#` is not a valid YAML 1.2 escape and a strict parser
+  // rejects the whole frontmatter. Confirm both that the raw input fails,
+  // and that our preprocessor produces YAML the parser accepts with the
+  // literal `\#` preserved as authored.
+  const raw = 'title: "YouTube「\\#ch789」"';
+  assertThrows(() => parseYaml(raw));
+  const output = preprocessFrontmatter(raw);
+  const parsed = parseYaml(output) as Record<string, unknown>;
+  assertEquals(parsed.title, "YouTube「\\#ch789」");
+});
+
+Deno.test("preprocessFrontmatter: leaves valid YAML 1.2 escape sequences byte-identical", () => {
+  // \n \t \\ \" \/ \xHH \uHHHH are all well-formed — touching them would
+  // corrupt the author's intent.
+  const input = [
+    'newline: "line1\\nline2"',
+    'path: "C:\\\\Users"',
+    'quote: "say \\"hi\\""',
+    'slash: "a\\/b"',
+    'hex: "\\x41"',
+    'uni: "\\u0041"',
+  ].join("\n");
+  assertEquals(preprocessFrontmatter(input), input);
+});
+
+Deno.test("preprocessFrontmatter: does not touch backslashes inside single-quoted scalars (escape rules do not apply there)", () => {
+  // In single-quoted YAML, backslashes are literal — no escape normalization
+  // is needed, and rewriting would change the value.
+  const input = "title: 'raw \\# literal'";
+  assertEquals(preprocessFrontmatter(input), input);
+});
+
+Deno.test("preprocessFrontmatter: tracks escaped double-quote without prematurely leaving in-string state", () => {
+  // The \" in the middle is a YAML-legal escape; the scanner must NOT treat
+  // it as a closing delimiter, otherwise the following \# would be seen as
+  // outside a string and left unfixed.
+  const raw = 'title: "say \\"hi\\" then \\#tag"';
+  const output = preprocessFrontmatter(raw);
+  const parsed = parseYaml(output) as Record<string, unknown>;
+  assertEquals(parsed.title, 'say "hi" then \\#tag');
 });
