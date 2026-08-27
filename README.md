@@ -343,7 +343,7 @@ deno task check    # fmt --check + lint + type-check
 deno task fmt      # auto-format
 ```
 
-135 tests cover every pure function plus the CLI orchestration layer (parse → build → render → write
+136 tests cover every pure function plus the CLI orchestration layer (parse → build → render → write
 pipeline, format dispatch, error handling); CI runs on every push.
 
 ## License

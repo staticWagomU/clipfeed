@@ -11,8 +11,18 @@ import type { FeedItem } from "./types.ts";
  *   never shows the same link twice. Dedup runs before `slice` so a redundant copy
  *   can't consume a slot and push a genuinely distinct article out of a limited feed.
  *   Items with an empty link are left untouched — they are not all "the same URL".
+ * - Rejects invalid pubDates: an Invalid Date makes the comparator return NaN, which
+ *   leaves the sort order — and therefore which duplicate survives dedup — up to the
+ *   engine. The parse layer already guards every date source, so this only fires on a
+ *   programming error; failing fast beats silently emitting a nondeterministic feed.
  */
 export function buildFeed(items: readonly FeedItem[], limit: number): FeedItem[] {
+  for (const item of items) {
+    if (isNaN(item.pubDate.getTime())) {
+      throw new Error(`buildFeed: invalid pubDate on item "${item.guid}"`);
+    }
+  }
+
   const sortedNewestFirst = [...items].sort((a, b) => {
     const diff = b.pubDate.getTime() - a.pubDate.getTime();
     if (diff !== 0) return diff;

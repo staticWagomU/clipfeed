@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertThrows } from "@std/assert";
 import { buildFeed } from "../src/buildFeed.ts";
 import type { FeedItem } from "../src/types.ts";
 
@@ -80,6 +80,18 @@ Deno.test("buildFeed: single-item input is returned as-is", () => {
   const items = [mkItem("only", "2026-01-01T00:00:00Z")];
   const result = buildFeed(items, 5);
   assertEquals(result.map((i) => i.guid), ["only"]);
+});
+
+Deno.test("buildFeed: rejects an invalid pubDate instead of sorting nondeterministically", () => {
+  const items = [
+    mkItem("ok", "2026-01-01T00:00:00Z"),
+    mkItem("broken", "not-a-date"),
+  ];
+  assertThrows(
+    () => buildFeed(items, 10),
+    Error,
+    'buildFeed: invalid pubDate on item "broken"',
+  );
 });
 
 Deno.test("buildFeed: collapses items sharing a link, keeping the newest", () => {
