@@ -2,10 +2,10 @@ import { assertEquals } from "@std/assert";
 import { buildFeed } from "../src/buildFeed.ts";
 import type { FeedItem } from "../src/types.ts";
 
-function mkItem(guid: string, iso: string): FeedItem {
+function mkItem(guid: string, iso: string, link?: string): FeedItem {
   return {
     title: guid,
-    link: `https://example.com/${guid}`,
+    link: link ?? `https://example.com/${guid}`,
     description: "",
     pubDate: new Date(iso),
     guid,
@@ -80,4 +80,36 @@ Deno.test("buildFeed: single-item input is returned as-is", () => {
   const items = [mkItem("only", "2026-01-01T00:00:00Z")];
   const result = buildFeed(items, 5);
   assertEquals(result.map((i) => i.guid), ["only"]);
+});
+
+Deno.test("buildFeed: collapses items sharing a link, keeping the newest", () => {
+  const items = [
+    mkItem("old", "2026-01-01T00:00:00Z", "https://example.com/article"),
+    mkItem("new", "2026-03-01T00:00:00Z", "https://example.com/article"),
+    mkItem("other", "2026-02-01T00:00:00Z", "https://example.com/other"),
+  ];
+  const result = buildFeed(items, 10);
+  assertEquals(result.map((i) => i.guid), ["new", "other"]);
+});
+
+Deno.test("buildFeed: dedupes by link before applying the limit", () => {
+  const items = [
+    mkItem("dup-new", "2026-04-01T00:00:00Z", "https://example.com/a"),
+    mkItem("dup-old", "2026-03-01T00:00:00Z", "https://example.com/a"),
+    mkItem("b", "2026-02-01T00:00:00Z", "https://example.com/b"),
+  ];
+  // Without dedup, the two newest items are both copies of /a and limit 2
+  // would emit ["dup-new", "dup-old"]. Dedup-before-limit must instead free
+  // the slot for the genuinely distinct /b.
+  const result = buildFeed(items, 2);
+  assertEquals(result.map((i) => i.guid), ["dup-new", "b"]);
+});
+
+Deno.test("buildFeed: keeps items with empty links distinct", () => {
+  const items = [
+    mkItem("x", "2026-01-01T00:00:00Z", ""),
+    mkItem("y", "2026-02-01T00:00:00Z", ""),
+  ];
+  const result = buildFeed(items, 10);
+  assertEquals(result.map((i) => i.guid), ["y", "x"]);
 });

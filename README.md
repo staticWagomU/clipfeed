@@ -319,7 +319,7 @@ parseClipping ─── frontmatter → FeedItem (field mapping is configurable)
       │
 resolveDate ────── picks pubDate per the filename / frontmatter / mtime strategy
       │
- buildFeed ─────── sort desc, deterministic tie-break, take top N
+ buildFeed ─────── sort desc, deterministic tie-break, dedupe by link, take top N
       │
  ┌────┴────┐
  ▼         ▼         ▼
@@ -343,7 +343,7 @@ deno task check    # fmt --check + lint + type-check
 deno task fmt      # auto-format
 ```
 
-128 tests cover every pure function plus the CLI orchestration layer (parse → build → render → write
+135 tests cover every pure function plus the CLI orchestration layer (parse → build → render → write
 pipeline, format dispatch, error handling); CI runs on every push.
 
 ## License
