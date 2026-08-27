@@ -117,6 +117,55 @@ Deno.test("buildFeed: dedupes by link before applying the limit", () => {
   assertEquals(result.map((i) => i.guid), ["dup-new", "b"]);
 });
 
+Deno.test("buildFeed: treats trailing-slash link variants as the same article", () => {
+  const items = [
+    mkItem("old", "2026-01-01T00:00:00Z", "https://example.com/article"),
+    mkItem("new", "2026-02-01T00:00:00Z", "https://example.com/article/"),
+  ];
+  const result = buildFeed(items, 10);
+  assertEquals(result.map((i) => i.guid), ["new"]);
+  // The key is normalized only for comparison; the emitted link is untouched.
+  assertEquals(result[0].link, "https://example.com/article/");
+});
+
+Deno.test("buildFeed: ignores tracking params when comparing links", () => {
+  const items = [
+    mkItem("via-twitter", "2026-01-01T00:00:00Z", "https://example.com/a?utm_source=twitter"),
+    mkItem("via-feed", "2026-02-01T00:00:00Z", "https://example.com/a?utm_source=feed&fbclid=x"),
+    mkItem("direct", "2026-03-01T00:00:00Z", "https://example.com/a?gclid=y"),
+  ];
+  const result = buildFeed(items, 10);
+  assertEquals(result.map((i) => i.guid), ["direct"]);
+});
+
+Deno.test("buildFeed: ignores fragments when comparing links", () => {
+  const items = [
+    mkItem("top", "2026-01-01T00:00:00Z", "https://example.com/a"),
+    mkItem("anchored", "2026-02-01T00:00:00Z", "https://example.com/a#section-2"),
+  ];
+  const result = buildFeed(items, 10);
+  assertEquals(result.map((i) => i.guid), ["anchored"]);
+});
+
+Deno.test("buildFeed: keeps links differing in meaningful query params distinct", () => {
+  const items = [
+    mkItem("post-1", "2026-01-01T00:00:00Z", "https://example.com/?p=1"),
+    mkItem("post-2", "2026-02-01T00:00:00Z", "https://example.com/?p=2"),
+  ];
+  const result = buildFeed(items, 10);
+  assertEquals(result.map((i) => i.guid), ["post-2", "post-1"]);
+});
+
+Deno.test("buildFeed: dedupes unparseable links only on exact match", () => {
+  const items = [
+    mkItem("rel-dup-new", "2026-03-01T00:00:00Z", "not a url"),
+    mkItem("rel-dup-old", "2026-02-01T00:00:00Z", "not a url"),
+    mkItem("rel-other", "2026-01-01T00:00:00Z", "also not a url"),
+  ];
+  const result = buildFeed(items, 10);
+  assertEquals(result.map((i) => i.guid), ["rel-dup-new", "rel-other"]);
+});
+
 Deno.test("buildFeed: keeps items with empty links distinct", () => {
   const items = [
     mkItem("x", "2026-01-01T00:00:00Z", ""),
